@@ -4,8 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-CHAT_ID = os.getenv("CHAT_ID")
+BOT_TOKEN = "7828405994:AAFCzF4_f-WgB4BW0NtWIEma7YhZgqBzbbM"
+CHAT_ID = "634345487"
 URL = "https://www.ebay.com/itm/356848025074"
 
 # Статус включения скрипта
