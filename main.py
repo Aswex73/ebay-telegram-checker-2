@@ -4,60 +4,82 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta
 
-# Получаем переменные из окружения
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-
-print("DEBUG: BOT_TOKEN =", BOT_TOKEN)
-print("DEBUG: CHAT_ID =", CHAT_ID)
-
 URL = "https://www.ebay.com/itm/356848025074"
+
+# Статус включения скрипта
+active = False
+last_info_time = datetime.now() - timedelta(hours=1)
+last_update_id = None
 
 def send_telegram(message):
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message}
+    data = {"chat_id": CHAT_ID, "text": message}
     try:
-        response = requests.post(url, data=payload)
-        print("📨 Telegram отправлено:", response.status_code)
+        requests.post(url, data=data)
     except Exception as e:
-        print("❌ Ошибка при отправке Telegram:", e)
+        print("❌ Telegram send error:", e)
 
 def check_stock():
     try:
-        text = requests.get(URL).text
-        has_out = "Out of Stock" in text or "This item is out of stock" in text
-        has_buy = "Add to cart" in text or "Buy It Now" in text or "Place bid" in text
+        html = requests.get(URL).text
+        has_out = "Out of stock" in html or "This item is out of stock" in html
+        has_buy = "Add to cart" in html or "Buy It Now" in html or "Place bid" in html
         return (not has_out) and has_buy
     except Exception as e:
         print("❌ Ошибка при загрузке страницы:", e)
         return False
 
-def main():
-    print("🚀 Бот запущен на Railway.")
-    send_telegram("🟢 Бот eBay Checker запущен и работает 24/7.")
+def check_commands():
+    global active, last_update_id
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates"
+    try:
+        response = requests.get(url).json()
+        for update in response["result"]:
+            update_id = update["update_id"]
+            message = update.get("message", {})
+            text = message.get("text", "").lower()
+            chat_id = str(message.get("chat", {}).get("id", ""))
 
-    notified = False
-    last_info_time = datetime.now() - timedelta(hours=1)
+            if chat_id != CHAT_ID:
+                continue  # Игнорируем чужие сообщения
+
+            if last_update_id is None or update_id > last_update_id:
+                last_update_id = update_id
+
+                if text == "/пуск":
+                    active = True
+                    send_telegram("▶️ Мониторинг запущен.")
+                elif text == "/стоп":
+                    active = False
+                    send_telegram("⏹ Мониторинг остановлен.")
+                elif text == "/статус":
+                    status = "🟢 ВКЛЮЧЕН" if active else "🔴 ВЫКЛЮЧЕН"
+                    send_telegram(f"⚙️ Статус бота: {status}")
+    except Exception as e:
+        print("❌ Ошибка в check_commands:", e)
+
+def main():
+    global last_info_time
+    print("🚀 Бот запущен с Telegram-управлением.")
+    send_telegram("🤖 Бот запущен. Используй /пуск, /стоп, /статус для управления.")
 
     while True:
-        in_stock = check_stock()
+        check_commands()
 
-        if in_stock:
-            if not notified:
-                send_telegram("🛒 Railway - Товар снова в наличии! 👉 https://www.ebay.com/itm/356848025074")
-                notified = True
+        if active:
+            if check_stock():
+                send_telegram("🛒 Товар в наличии! 👉 https://www.ebay.com/itm/356848025074")
+            else:
+                now = datetime.now()
+                if now - last_info_time >= timedelta(hours=1):
+                    send_telegram("⏳ Я работаю, но товара пока нет.")
+                    last_info_time = now
         else:
-            print("⏳ Товара нет. Ждём...")
-            notified = False
-
-            # Раз в час отправляем "живой отчёт"
-            now = datetime.now()
-            if now - last_info_time >= timedelta(hours=1):
-                send_telegram("⏳ Я работаю, но товара пока нет в наличии.")
-                last_info_time = now
+            print("⏸ Мониторинг выключен.")
 
         time.sleep(60)
 
 if __name__ == "__main__":
     main()
-    # Обновление для перезапуска
