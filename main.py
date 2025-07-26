@@ -24,7 +24,7 @@ def send_telegram(message):
 def check_stock():
     try:
         html = requests.get(URL).text
-        has_out = "Out of stock" in html or "This item is out of stock" in html
+        has_out = "Out of Stock" in html or "This item is out of stock" in html
         has_buy = "Add to cart" in html or "Buy It Now" in html or "Place bid" in html
         return (not has_out) and has_buy
     except Exception as e:
