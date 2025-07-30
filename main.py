@@ -10,7 +10,7 @@ URL = "https://www.ebay.com/itm/356848025074"
 
 # Статус включения скрипта
 active = False
-last_info_time = datetime.now() - timedelta(hours=1)
+last_info_time = datetime.now() - timedelta(hours=3)
 last_update_id = None
 
 def send_telegram(message):
@@ -73,7 +73,7 @@ def main():
                 send_telegram("🛒 Товар в наличии! 👉 https://www.ebay.com/itm/356848025074")
             else:
                 now = datetime.now()
-                if now - last_info_time >= timedelta(hours=1):
+                if now - last_info_time >= timedelta(hours=3):
                     send_telegram("⏳ Я работаю, но товара пока нет.")
                     last_info_time = now
         else:
