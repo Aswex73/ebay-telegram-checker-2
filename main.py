@@ -79,7 +79,7 @@ def main():
         else:
             print("⏸ Мониторинг выключен.")
 
-        time.sleep(180)
+        time.sleep(60)
 
 if __name__ == "__main__":
     main()
